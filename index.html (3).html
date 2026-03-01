@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ADITYA TERMINAL</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+
+:root {
+  --amber: #ffb300;
+  --amber2: #ff8c00;
+  --green: #00ff41;
+  --red: #ff2244;
+  --blue: #00d4ff;
+  --bg: #000000;
+  --surface: #050505;
+  --border: #1a1a00;
+  --muted: #554400;
+  --text: #ffcc00;
+}
+
+html, body {
+  background: #000;
+  color: var(--amber);
+  font-family: 'Share Tech Mono', monospace;
+  height: 100%;
+  overflow-x: hidden;
+}
+
+/* CRT Screen effect */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.15) 2px,
+    rgba(0,0,0,0.15) 4px
+  );
+  pointer-events: none;
+  z-index: 9998;
+}
+
+/* Scanline */
+body::after {
+  content: '';
+  position: fixed;
+  top: -100%;
+  left: 0; right: 0;
+  height: 40%;
+  background: linear-gradient(transparent, rgba(255,179,0,0.03), transparent);
+  animation: scan 6s linear infinite;
+  pointer-events: none;
+  z-index: 9997;
+}
+@keyframes scan { to { top: 100%; } }
+
+/* Vignette */
+.vignette {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.8) 100%);
+  pointer-events: none;
+  z-index: 9996;
+}
+
+.terminal {
+  min-height: 100vh;
+  padding: 0;
+  position: relative;
+}
+
+/* TOP BAR */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--amber);
+  color: #000;
+  padding: 4px 12px;
+  font-size: 0.85rem;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+.topbar-left { display: flex; gap: 20px; align-items: center; }
+.topbar-brand { font-family: 'VT323', monospace; font-size: 1.2rem; letter-spacing: 3px; }
+.topbar-right { display: flex; gap: 16px; font-size: 0.75rem; }
+
+/* TICKER TAPE */
+.ticker-wrap {
+  background: #111100;
+  border-top: 1px solid #333300;
+  border-bottom: 1px solid #333300;
+  overflow: hidden;
+  white-space: nowrap;
+  padding: 3px 0;
+}
+.ticker-inner {
+  display: inline-block;
+  animation: ticker 60s linear infinite;
+}
+@keyframes ticker { from{transform:translateX(100vw)} to{transform:translateX(-100%)} }
+.tick-item { display: inline-block; margin: 0 24px; font-size: 0.72rem; letter-spacing: 1px; }
+.tick-up { color: var(--green); }
+.tick-down { color: var(--red); }
+.tick-label { color: var(--amber); margin-right: 6px; }
+
+/* MAIN GRID */
+.main {
+  display: grid;
+  grid-template-columns: 220px 1fr 220px;
+  grid-template-rows: auto 1fr auto;
+  height: calc(100vh - 60px);
+  border: 1px solid #222200;
+}
+
+/* LEFT PANEL */
+.left-panel {
+  border-right: 1px solid #222200;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* CENTER PANEL */
+.center-panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* RIGHT PANEL */
+.right-panel {
+  border-left: 1px solid #222200;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* PANEL HEADER */
+.panel-hdr {
+  background: #111100;
+  border-bottom: 1px solid #333300;
+  padding: 5px 10px;
+  font-size: 0.7rem;
+  letter-spacing: 2px;
+  color: var(--amber);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+.panel-hdr-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+  animation: blink 1s infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+/* COMMODITY ROWS */
+.comm-list { overflow-y: auto; flex: 1; }
+.comm-list::-webkit-scrollbar { width: 4px; }
+.comm-list::-webkit-scrollbar-thumb { background: #333300; }
+
+.comm-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  padding: 7px 10px;
+  border-bottom: 1px solid #0d0d00;
+  cursor: pointer;
+  transition: background 0.1s;
+  gap: 8px;
+}
+.comm-row:hover { background: #0d0d00; }
+.comm-row.active { background: #1a1a00; border-left: 2px solid var(--amber); }
+.comm-row-left {}
+.comm-sym { font-size: 0.8rem; color: var(--amber); letter-spacing: 1px; font-weight: bold; }
+.comm-full { font-size: 0.6rem; color: var(--muted); letter-spacing: 0.5px; margin-top: 1px; }
+.comm-row-right { text-align: right; }
+.comm-price-sm { font-size: 0.78rem; color: #fff; }
+.comm-chg-sm { font-size: 0.65rem; }
+.comm-chg-sm.up { color: var(--green); }
+.comm-chg-sm.down { color: var(--red); }
+
+/* CENTER CHART AREA */
+.chart-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+
+.chart-hdr {
+  padding: 10px 16px;
+  border-bottom: 1px solid #222200;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+.chart-symbol { font-family: 'VT323', monospace; font-size: 2.2rem; color: var(--amber); letter-spacing: 3px; }
+.chart-meta { text-align: right; }
+.chart-price { font-family: 'VT323', monospace; font-size: 2.8rem; color: #fff; line-height: 1; }
+.chart-change-big { font-size: 0.8rem; }
+.chart-change-big.up { color: var(--green); }
+.chart-change-big.down { color: var(--red); }
+
+.chart-wrap { flex: 1; position: relative; padding: 10px; }
+canvas#mainChart { width: 100% !important; height: 100% !important; }
+
+.chart-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid #222200;
+  flex-shrink: 0;
+}
+.chart-stat {
+  padding: 8px 12px;
+  border-right: 1px solid #111100;
+  text-align: center;
+}
+.chart-stat:last-child { border-right: none; }
+.cs-label { font-size: 0.6rem; color: var(--muted); letter-spacing: 1px; margin-bottom: 3px; }
+.cs-value { font-size: 0.82rem; color: var(--amber); }
+
+/* RIGHT PANEL — NEWS + ALERTS */
+.news-list { overflow-y: auto; flex: 1; }
+.news-list::-webkit-scrollbar { width: 4px; }
+.news-list::-webkit-scrollbar-thumb { background: #333300; }
+
+.news-item {
+  padding: 8px 10px;
+  border-bottom: 1px solid #0d0d00;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.news-item:hover { background: #0d0d00; }
+.news-sym { font-size: 0.62rem; color: var(--blue); letter-spacing: 1px; margin-bottom: 3px; }
+.news-title { font-size: 0.68rem; color: #ccaa00; line-height: 1.4; margin-bottom: 3px; }
+.news-date { font-size: 0.58rem; color: var(--muted); }
+
+/* ALERT ITEMS */
+.alert-item {
+  padding: 6px 10px;
+  border-bottom: 1px solid #0d0d00;
+  font-size: 0.65rem;
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+}
+.alert-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); margin-top: 4px; flex-shrink: 0; box-shadow: 0 0 4px var(--green); }
+.alert-dot.warn { background: var(--amber); box-shadow: 0 0 4px var(--amber); }
+.alert-text { color: #888; line-height: 1.4; }
+
+/* BOTTOM BAR */
+.bottombar {
+  grid-column: 1 / -1;
+  background: #0a0a00;
+  border-top: 1px solid #222200;
+  padding: 4px 12px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.62rem;
+  color: var(--muted);
+  letter-spacing: 1px;
+  flex-shrink: 0;
+}
+
+/* CATEGORY BUTTONS */
+.cat-btns {
+  display: flex;
+  gap: 2px;
+  padding: 6px;
+  border-bottom: 1px solid #222200;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+.cat-btn {
+  background: none;
+  border: 1px solid #222200;
+  color: var(--muted);
+  padding: 3px 8px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.1s;
+}
+.cat-btn:hover, .cat-btn.active {
+  background: var(--amber);
+  color: #000;
+  border-color: var(--amber);
+}
+
+/* COMMAND LINE */
+.cmdline {
+  padding: 4px 10px;
+  border-top: 1px solid #222200;
+  font-size: 0.7rem;
+  color: var(--green);
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-shrink: 0;
+}
+.cmdline-prompt { color: var(--amber); }
+
+/* LOADING */
+.loading-bar {
+  width: 100%;
+  height: 2px;
+  background: #111100;
+  position: relative;
+  overflow: hidden;
+}
+.loading-bar::after {
+  content: '';
+  position: absolute;
+  left: -40%;
+  top: 0;
+  width: 40%;
+  height: 100%;
+  background: var(--amber);
+  animation: load 1.5s ease infinite;
+}
+@keyframes load { to { left: 100%; } }
+
+@media (max-width: 900px) {
+  .main { grid-template-columns: 1fr; grid-template-rows: auto auto auto auto; height: auto; }
+  .left-panel, .right-panel { max-height: 200px; border: none; border-bottom: 1px solid #222200; }
+  .chart-area { min-height: 300px; }
+  .chart-stats { grid-template-columns: repeat(2,1fr); }
+  .chart-symbol { font-size: 1.5rem; }
+  .chart-price { font-size: 2rem; }
+}
+</style>
+</head>
+<body>
+<div class="vignette"></div>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="topbar-brand">⬛ ADITYA TERMINAL</span>
+    <span id="top-time">--:--:--</span>
+    <span>IST</span>
+  </div>
+  <div class="topbar-right">
+    <span>CFA L1 · COMMODITY MARKETS</span>
+    <span id="top-date">--</span>
+    <span style="color:#00ff41">● LIVE</span>
+  </div>
+</div>
+
+<!-- TICKER TAPE -->
+<div class="ticker-wrap">
+  <div class="ticker-inner" id="ticker">
+    <span class="tick-item"><span class="tick-label">GOLD</span><span class="tick-up" id="tick-gold">LOADING...</span></span>
+    <span class="tick-item"><span class="tick-label">SILVER</span><span class="tick-up" id="tick-silver">LOADING...</span></span>
+    <span class="tick-item"><span class="tick-label">WTI OIL</span><span class="tick-up" id="tick-oil">LOADING...</span></span>
+    <span class="tick-item"><span class="tick-label">BRENT</span><span class="tick-up" id="tick-brent">LOADING...</span></span>
+    <span class="tick-item"><span class="tick-label">NAT GAS</span><span class="tick-up" id="tick-gas">LOADING...</span></span>
+    <span class="tick-item"><span class="tick-label">COPPER</span><span class="tick-up" id="tick-copper">LOADING...</span></span>
+    <span class="tick-item"><span class="tick-label">WHEAT</span><span class="tick-up" id="tick-wheat">LOADING...</span></span>
+    <span class="tick-item"><span class="tick-label">CORN</span><span class="tick-up" id="tick-corn">LOADING...</span></span>
+    <span class="tick-item"><span class="tick-label">PLATINUM</span><span class="tick-up" id="tick-platinum">LOADING...</span></span>
+    <span class="tick-item"><span class="tick-label">PALLADIUM</span><span class="tick-up" id="tick-palladium">LOADING...</span></span>
+    <span class="tick-item">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- LEFT: WATCHLIST -->
+  <div class="left-panel">
+    <div class="panel-hdr">
+      <span>WATCHLIST</span>
+      <div class="panel-hdr-dot"></div>
+    </div>
+    <div class="cat-btns">
+      <button class="cat-btn active" onclick="filterList('all',this)">ALL</button>
+      <button class="cat-btn" onclick="filterList('metals',this)">MTL</button>
+      <button class="cat-btn" onclick="filterList('energy',this)">NRG</button>
+      <button class="cat-btn" onclick="filterList('agri',this)">AGR</button>
+      <button class="cat-btn" onclick="filterList('base',this)">BSE</button>
+    </div>
+    <div class="comm-list" id="watchlist">
+      <!-- filled by JS -->
+    </div>
+    <div class="cmdline">
+      <span class="cmdline-prompt">&gt;</span>
+      <span id="cmd-text">FETCHING MARKET DATA...</span>
+    </div>
+  </div>
+
+  <!-- CENTER: CHART -->
+  <div class="center-panel">
+    <div class="panel-hdr">
+      <span id="center-label">COMMODITY CHART</span>
+      <div style="display:flex;gap:8px;font-size:0.6rem">
+        <span style="color:var(--muted)">5D</span>
+        <span style="color:var(--muted)">1M</span>
+        <span style="color:var(--muted)">3M</span>
+        <span style="color:var(--amber)">YTD</span>
+      </div>
+    </div>
+    <div class="chart-area">
+      <div class="chart-hdr">
+        <div>
+          <div class="chart-symbol" id="chart-sym">GOLD</div>
+          <div style="font-size:0.62rem;color:var(--muted)" id="chart-sub">COMEX · USD/OZ · CONTINUOUS</div>
+        </div>
+        <div class="chart-meta">
+          <div class="chart-price" id="chart-price">$0.00</div>
+          <div class="chart-change-big up" id="chart-change">▲ 0.00 (0.00%)</div>
+        </div>
+      </div>
+      <div class="loading-bar" id="loading-bar"></div>
+      <div class="chart-wrap">
+        <canvas id="mainChart"></canvas>
+      </div>
+      <div class="chart-stats">
+        <div class="chart-stat"><div class="cs-label">OPEN</div><div class="cs-value" id="cs-open">—</div></div>
+        <div class="chart-stat"><div class="cs-label">HIGH</div><div class="cs-value" id="cs-high">—</div></div>
+        <div class="chart-stat"><div class="cs-label">LOW</div><div class="cs-value" id="cs-low">—</div></div>
+        <div class="chart-stat"><div class="cs-label">PREV CLOSE</div><div class="cs-value" id="cs-prev">—</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: NEWS + ALERTS -->
+  <div class="right-panel">
+    <div class="panel-hdr">
+      <span>MARKET ALERTS</span>
+      <div class="panel-hdr-dot"></div>
+    </div>
+    <div style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+      <div style="padding:5px 10px;font-size:0.6rem;color:var(--muted);border-bottom:1px solid #0d0d00;letter-spacing:1px;flex-shrink:0">
+        ── SYSTEM ALERTS ──
+      </div>
+      <div class="news-list" id="alert-list">
+        <div class="alert-item"><div class="alert-dot"></div><div class="alert-text">Terminal initialized. Connecting to market data feeds...</div></div>
+        <div class="alert-item"><div class="alert-dot warn"></div><div class="alert-text">Commodity markets open. Data streaming live.</div></div>
+        <div class="alert-item"><div class="alert-dot"></div><div class="alert-text">Click any row in watchlist to load chart.</div></div>
+        <div class="alert-item"><div class="alert-dot"></div><div class="alert-text">Data sourced from Yahoo Finance API.</div></div>
+        <div class="alert-item"><div class="alert-dot warn"></div><div class="alert-text">Auto-refresh every 60 seconds.</div></div>
+        <div class="alert-item"><div class="alert-dot"></div><div class="alert-text">Built by Aditya · CFA Level 1 Candidate · 2026</div></div>
+      </div>
+      <div style="padding:5px 10px;font-size:0.6rem;color:var(--muted);border-top:1px solid #0d0d00;border-bottom:1px solid #0d0d00;letter-spacing:1px;flex-shrink:0">
+        ── MARKET STATS ──
+      </div>
+      <div style="padding:10px;flex-shrink:0">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          <div style="background:#0a0a00;border:1px solid #1a1a00;padding:8px;text-align:center">
+            <div style="font-size:0.58rem;color:var(--muted);letter-spacing:1px">GAINERS</div>
+            <div style="font-size:1.2rem;color:var(--green);font-family:'VT323',monospace" id="stat-gainers">—</div>
+          </div>
+          <div style="background:#0a0a00;border:1px solid #1a1a00;padding:8px;text-align:center">
+            <div style="font-size:0.58rem;color:var(--muted);letter-spacing:1px">LOSERS</div>
+            <div style="font-size:1.2rem;color:var(--red);font-family:'VT323',monospace" id="stat-losers">—</div>
+          </div>
+          <div style="background:#0a0a00;border:1px solid #1a1a00;padding:8px;text-align:center;grid-column:1/-1">
+            <div style="font-size:0.58rem;color:var(--muted);letter-spacing:1px">LAST UPDATE</div>
+            <div style="font-size:0.75rem;color:var(--amber)" id="stat-update">PENDING</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM BAR -->
+  <div class="bottombar">
+    <span>ADITYA TERMINAL v2.0 · GLOBAL COMMODITY MARKETS</span>
+    <span>DATA: YAHOO FINANCE · DELAYED 15MIN</span>
+    <span>© 2026 ADITYA JHA · CFA L1</span>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const COMMODITIES = [
+  { id:'gold',      symbol:'GC=F',  name:'GOLD',      full:'Gold Futures',       cat:'metals', exchange:'COMEX', unit:'USD/OZ' },
+  { id:'silver',    symbol:'SI=F',  name:'SILVER',    full:'Silver Futures',     cat:'metals', exchange:'COMEX', unit:'USD/OZ' },
+  { id:'platinum',  symbol:'PL=F',  name:'PLATINUM',  full:'Platinum Futures',   cat:'metals', exchange:'NYMEX', unit:'USD/OZ' },
+  { id:'palladium', symbol:'PA=F',  name:'PALLADIUM', full:'Palladium Futures',  cat:'metals', exchange:'NYMEX', unit:'USD/OZ' },
+  { id:'oil',       symbol:'CL=F',  name:'WTI OIL',   full:'Crude Oil WTI',      cat:'energy', exchange:'NYMEX', unit:'USD/BBL' },
+  { id:'brent',     symbol:'BZ=F',  name:'BRENT',     full:'Brent Crude',        cat:'energy', exchange:'ICE',   unit:'USD/BBL' },
+  { id:'gas',       symbol:'NG=F',  name:'NAT GAS',   full:'Natural Gas',        cat:'energy', exchange:'NYMEX', unit:'USD/MMBTU' },
+  { id:'gasoline',  symbol:'RB=F',  name:'GASOLINE',  full:'RBOB Gasoline',      cat:'energy', exchange:'NYMEX', unit:'USD/GAL' },
+  { id:'wheat',     symbol:'ZW=F',  name:'WHEAT',     full:'Wheat Futures',      cat:'agri',   exchange:'CBOT',  unit:'USD/BU' },
+  { id:'corn',      symbol:'ZC=F',  name:'CORN',      full:'Corn Futures',       cat:'agri',   exchange:'CBOT',  unit:'USD/BU' },
+  { id:'soy',       symbol:'ZS=F',  name:'SOYBEANS',  full:'Soybean Futures',    cat:'agri',   exchange:'CBOT',  unit:'USD/BU' },
+  { id:'cotton',    symbol:'CT=F',  name:'COTTON',    full:'Cotton Futures',     cat:'agri',   exchange:'NYBOT', unit:'USD/LB' },
+  { id:'copper',    symbol:'HG=F',  name:'COPPER',    full:'Copper Futures',     cat:'base',   exchange:'COMEX', unit:'USD/LB' },
+  { id:'alum',      symbol:'ALI=F', name:'ALUMINIUM', full:'Aluminium Futures',  cat:'base',   exchange:'LME',   unit:'USD/LB' },
+  { id:'zinc',      symbol:'ZI=F',  name:'ZINC',      full:'Zinc Futures',       cat:'base',   exchange:'LME',   unit:'USD/LB' },
+  { id:'lumber',    symbol:'LBS=F', name:'LUMBER',    full:'Lumber Futures',     cat:'base',   exchange:'CME',   unit:'USD/1000BF' },
+];
+
+const priceData = {};
+let currentCat = 'all';
+let mainChartObj = null;
+let currentComm = COMMODITIES[0];
+
+// Clock
+function updateClock() {
+  const now = new Date();
+  document.getElementById('top-time').textContent =
+    now.toLocaleTimeString('en-IN', { hour12: false });
+  document.getElementById('top-date').textContent =
+    now.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// Build watchlist
+function buildWatchlist() {
+  const wl = document.getElementById('watchlist');
+  wl.innerHTML = '';
+  COMMODITIES.forEach((c, i) => {
+    if (currentCat !== 'all' && c.cat !== currentCat) return;
+    const d = priceData[c.id] || {};
+    const isUp = (d.change || 0) >= 0;
+    const row = document.createElement('div');
+    row.className = 'comm-row' + (c.id === currentComm.id ? ' active' : '');
+    row.dataset.cat = c.cat;
+    row.innerHTML = `
+      <div class="comm-row-left">
+        <div class="comm-sym">${c.name}</div>
+        <div class="comm-full">${c.exchange} · ${c.unit}</div>
+      </div>
+      <div class="comm-row-right">
+        <div class="comm-price-sm">${d.price ? '$'+fmt(d.price) : '···'}</div>
+        <div class="comm-chg-sm ${isUp?'up':'down'}">${d.changePct ? (isUp?'▲':'▼')+Math.abs(d.changePct).toFixed(2)+'%' : '···'}</div>
+      </div>`;
+    row.onclick = () => selectComm(c);
+    wl.appendChild(row);
+  });
+}
+
+function filterList(cat, btn) {
+  currentCat = cat;
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  buildWatchlist();
+}
+
+function fmt(n) {
+  if (n >= 1000) return n.toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 });
+  if (n >= 10)   return n.toFixed(2);
+  return n.toFixed(4);
+}
+
+function selectComm(comm) {
+  currentComm = comm;
+  buildWatchlist();
+  const d = priceData[comm.id];
+  if (d) updateChart(comm, d);
+}
+
+function updateChart(comm, d) {
+  const isUp = d.change >= 0;
+  document.getElementById('chart-sym').textContent = comm.name;
+  document.getElementById('chart-sub').textContent = `${comm.exchange} · ${comm.unit} · CONTINUOUS`;
+  document.getElementById('center-label').textContent = `${comm.name} — PRICE CHART`;
+  document.getElementById('chart-price').textContent = `$${fmt(d.price)}`;
+  const chgEl = document.getElementById('chart-change');
+  chgEl.textContent = `${isUp?'▲':'▼'} ${Math.abs(d.change).toFixed(2)} (${Math.abs(d.changePct).toFixed(2)}%)`;
+  chgEl.className = `chart-change-big ${isUp?'up':'down'}`;
+  document.getElementById('cs-open').textContent  = d.open  ? `$${fmt(d.open)}`  : '—';
+  document.getElementById('cs-high').textContent  = d.high  ? `$${fmt(d.high)}`  : '—';
+  document.getElementById('cs-low').textContent   = d.low   ? `$${fmt(d.low)}`   : '—';
+  document.getElementById('cs-prev').textContent  = d.prev  ? `$${fmt(d.prev)}`  : '—';
+
+  // Render chart
+  if (mainChartObj) { mainChartObj.destroy(); mainChartObj = null; }
+  const canvas = document.getElementById('mainChart');
+  const ctx = canvas.getContext('2d');
+  const closes = d.closes || [];
+  const labels = closes.map((_, i) => `D-${closes.length - i}`).reverse();
+
+  const gradColor = isUp ? 'rgba(0,255,65,0.15)' : 'rgba(255,34,68,0.15)';
+  const lineColor = isUp ? '#00ff41' : '#ff2244';
+
+  const grad = ctx.createLinearGradient(0, 0, 0, canvas.offsetHeight);
+  grad.addColorStop(0, gradColor);
+  grad.addColorStop(1, 'transparent');
+
+  mainChartObj = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: closes.map((_, i) => i),
+      datasets: [{
+        data: closes,
+        borderColor: lineColor,
+        backgroundColor: grad,
+        borderWidth: 1.5,
+        fill: true,
+        tension: 0.3,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        pointHoverBackgroundColor: lineColor,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 600, easing: 'easeInOutQuart' },
+      interaction: { intersect: false, mode: 'index' },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0d0d00',
+          borderColor: '#333300',
+          borderWidth: 1,
+          titleColor: '#ffb300',
+          bodyColor: lineColor,
+          callbacks: {
+            title: () => comm.name,
+            label: (ctx) => ` $${fmt(ctx.parsed.y)}`
+          }
+        }
+      },
+      scales: {
+        x: {
+          display: false,
+          grid: { display: false }
+        },
+        y: {
+          position: 'right',
+          grid: { color: '#0d0d00' },
+          ticks: {
+            color: '#554400',
+            font: { family: 'Share Tech Mono', size: 10 },
+            callback: v => `$${fmt(v)}`
+          }
+        }
+      }
+    }
+  });
+}
+
+// Update ticker tape
+function updateTicker() {
+  COMMODITIES.forEach(c => {
+    const d = priceData[c.id];
+    const el = document.getElementById(`tick-${c.id}`);
+    if (!el || !d) return;
+    const isUp = d.change >= 0;
+    el.textContent = `$${fmt(d.price)} ${isUp?'▲':'▼'}${Math.abs(d.changePct).toFixed(2)}%`;
+    el.className = isUp ? 'tick-up' : 'tick-down';
+  });
+}
+
+// Add alert
+function addAlert(msg, warn=false) {
+  const list = document.getElementById('alert-list');
+  const item = document.createElement('div');
+  item.className = 'alert-item';
+  item.innerHTML = `<div class="alert-dot${warn?' warn':''}"></div><div class="alert-text">${msg}</div>`;
+  list.insertBefore(item, list.firstChild);
+}
+
+// Fetch data
+async function fetchOne(comm) {
+  try {
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${comm.symbol}?interval=1d&range=30d`;
+    const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+    const res = await fetch(proxy, { signal: AbortSignal.timeout(10000) });
+    const json = await res.json();
+    const result = JSON.parse(json.contents).chart.result[0];
+    const q = result.indicators.quote[0];
+    const closes = q.close.filter(x => x !== null);
+    const opens  = q.open.filter(x => x !== null);
+    const highs  = q.high.filter(x => x !== null);
+    const lows   = q.low.filter(x => x !== null);
+
+    const price = closes[closes.length - 1];
+    const prev  = closes[closes.length - 2] || price;
+    const change = price - prev;
+    const changePct = (change / prev) * 100;
+
+    priceData[comm.id] = {
+      price, prev, change, changePct,
+      open: opens[opens.length - 1],
+      high: Math.max(...highs.slice(-1)),
+      low:  Math.min(...lows.slice(-1)),
+      closes
+    };
+
+    return { price, change, changePct };
+  } catch(e) {
+    return null;
+  }
+}
+
+async function fetchAll() {
+  document.getElementById('cmd-text').textContent = 'FETCHING MARKET DATA...';
+  document.getElementById('loading-bar').style.display = 'block';
+
+  let gainers = 0, losers = 0;
+
+  for (const comm of COMMODITIES) {
+    document.getElementById('cmd-text').textContent = `LOADING ${comm.name}...`;
+    const result = await fetchOne(comm);
+    if (result) {
+      if (result.change >= 0) gainers++; else losers++;
+    }
+    buildWatchlist();
+    updateTicker();
+    await new Promise(r => setTimeout(r, 400));
+  }
+
+  // Update center chart for current selection
+  const d = priceData[currentComm.id];
+  if (d) updateChart(currentComm, d);
+
+  document.getElementById('stat-gainers').textContent = gainers;
+  document.getElementById('stat-losers').textContent = losers;
+  document.getElementById('stat-update').textContent = new Date().toLocaleTimeString('en-IN', { hour12: false });
+  document.getElementById('cmd-text').textContent = 'MARKET DATA LOADED. ALL SYSTEMS NOMINAL.';
+  document.getElementById('loading-bar').style.display = 'none';
+
+  addAlert(`Market data refreshed. ${gainers} gainers, ${losers} losers.`);
+}
+
+// Init
+buildWatchlist();
+fetchAll();
+setInterval(fetchAll, 60000);
+</script>
+</body>
+</html>
